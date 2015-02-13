@@ -8,10 +8,6 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import batch_transform
 
 
-
-# Stocks we will test our algorithm on.
-STOCKS = ['JPM', 'S','VZ','AAPL','F','AA','KFRC']
-
 @batch_transform
 def anticor_matrix_calc( data, days_num, current_port ):
     LX_full = pd.DataFrame(data = data.price.values[1:]/data.price.values[:-1], columns= data.price.columns, index = data.price.index[1:])
@@ -53,27 +49,28 @@ def anticor_matrix_calc( data, days_num, current_port ):
     return new_portfolio.values
 
 # Actual zipline algorithm.
-class ANTICOR(TradingAlgorithm):
+class ANTICOR( TradingAlgorithm ):
 
-    def initialize(self,eps=1, window_length=2):
-        self.stocks = STOCKS
-        self.m = len(self.stocks)
-        self.current_port = np.ones(self.m) / self.m # Current portfolio composition in weights of inidividual stocks
+    def initialize( self, stocks, window_length=2 ):
+        self.stocks = stocks
+        self.window_length = window_length
+        
+        n = len(self.stocks)
+        self.current_port = np.ones(n) / n # Current portfolio composition in weights of inidividual stocks
         self.init = True
         self.days = 0
-        self.window_length = window_length
-        self.eps =eps
+        
         self.anticor_matrix_calc = anticor_matrix_calc(refresh_period=0,window_length=2*self.window_length+1)
 
-        self.set_slippage(zipline.finance.slippage.FixedSlippage())
-        self.set_commission(zipline.finance.commission.PerShare(cost=0))
+        self.set_slippage( zipline.finance.slippage.FixedSlippage() )
+        self.set_commission( zipline.finance.commission.PerShare(cost=0) )
         
     def handle_data(self, data):
         self.days += 1
         #print self.days
         
         #???
-        if self.days < 2*self.window_length:
+        if self.days < 2 * self.window_length:
             return
     
         if self.init:
@@ -83,13 +80,13 @@ class ANTICOR(TradingAlgorithm):
         
         #print data['JPM'].datetime
         b_norm = self.anticor_matrix_calc.handle_data( data, self.days, self.current_port )
-        if b_norm != None:
+        if b_norm is not None:
             self.current_port = b_norm
             self.rebalance_portfolio( data, self.current_port )
             #print self.portfolio.portfolio_value
         #print b_norm
         
-    def rebalance_portfolio(self, data, desired_port):
+    def rebalance_portfolio( self, data, desired_port ):
         #rebalance portfolio
         if self.init:
             positions_value = self.portfolio.starting_cash
@@ -109,6 +106,16 @@ class ANTICOR(TradingAlgorithm):
             self.order( stock, diff_amount[i] ) #order_stock
         
 
+# Stocks we will test our algorithm on.
+STOCKS = ['JPM', 'S','VZ','AAPL','F','AA','KFRC']
+
+    
+def run_ANTICOR( data, window_length ):
+    anti = ANTICOR( STOCKS, window_length )
+    res = anti.run( data )
+    return res.portfolio_value
+
+
 if __name__ == '__main__' :
     start = datetime.datetime(2012, 1, 15)
     end = datetime.datetime(2015, 1, 15)
@@ -118,7 +125,6 @@ if __name__ == '__main__' :
     #print data
     portfolio_value = []
     for window_size in np.arange(4,60,1):
-        anti=ANTICOR(0,window_size)
-        ptf = anti.run(data)
-        portfolio_value.append(ptf['portfolio_value'][-1])
+        pnlVec = run_ANTICOR( data, window_size )
+        portfolio_value.append( pnlVec[-1] )
     print 'Done'
