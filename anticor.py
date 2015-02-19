@@ -110,6 +110,17 @@ class ANTICOR( TradingAlgorithm ):
 STOCKS = ['JPM', 'S','VZ','AAPL','F','AA','KFRC']
 
     
+def run( start, end, window_length ):
+    if (start, end) in run.dataCache :
+    	data = run.dataCache[ (start, end) ]
+    else :
+        data = zipline.data.load_from_yahoo(stocks=STOCKS, indexes={}, start=start, end=end)
+        data = data.dropna()
+        run.dataCache[ (start, end) ] = data
+
+    return run_ANTICOR( data, window_length )
+run.dataCache = {}
+
 def run_ANTICOR( data, window_length ):
     anti = ANTICOR( STOCKS, window_length )
     res = anti.run( data )
