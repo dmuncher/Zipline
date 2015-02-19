@@ -1,8 +1,7 @@
 
-from IPython.parallel import Client
-
 # Create client to remote cluster with a json file that describe the cluster and
 # your private ssh key
+from IPython.parallel import Client
 rc=Client('C:\Users\Bolei\Zipline\AWS\SecurityGroup@sc-zipline-us-east-1.json',sshkey='C:\Users\Bolei\Zipline\AWS\ec2-key-pair-us-east-1.rsa')
 
 # Create a DirectView over the client
