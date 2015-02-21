@@ -15,27 +15,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with StarCluster. If not, see <http://www.gnu.org/licenses/>.
 
-"""Install python packages using pip
+"""Download and install Anaconda
 
 Packages are downloaded/installed in parallel, allowing for faster installs
 when using many nodes.
-
-For example to install the flask and SQLAlchemy packages on all the nodes::
-
-    [plugin webapp-packages]
-    setup_class = starcluster.plugins.pypkginstaller.PyPkgInstaller
-    packages = flask, SQLAlchemy
-
-It can also be used to install the development version of packages from
-github, for instance if you want to install the master branch of IPython
-and the latest released version of some dependencies::
-
-    [plugin ipython-dev]
-    setup_class = starcluster.plugins.pypkginstaller.PyPkgInstaller
-    install_command = pip install -U %s
-    packages = pyzmq,
-               python-msgpack,
-               git+http://github.com/ipython/ipython.git
 
 """
 from starcluster.clustersetup import DefaultClusterSetup
