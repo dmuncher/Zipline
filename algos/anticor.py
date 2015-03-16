@@ -60,7 +60,7 @@ class ANTICOR( TradingAlgorithm ):
         self.init = True
         self.days = 0
         
-        self.anticor_matrix_calc = anticor_matrix_calc(refresh_period=0,window_length=2*self.window_length+1)
+        self.anticor_matrix_calc = anticor_matrix_calc( refresh_period=0, window_length=2*self.window_length+1 )
 
         self.set_slippage( zipline.finance.slippage.FixedSlippage() )
         self.set_commission( zipline.finance.commission.PerShare(cost=0) )
