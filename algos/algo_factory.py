@@ -1,7 +1,7 @@
 
 
 def my_import( name ) :
-    print 'importing', name
+    #print 'importing', name
     m = __import__( name )
     
     # __import__ only returns top level module
@@ -11,6 +11,7 @@ def my_import( name ) :
     return m
 
 def create_algo( algoName, *args, **kwargs ):
+    print 'args', args
     package = create_algo.algoName2Package.get( algoName, 'Not found' )
     if package == 'Not found' :
         raise RuntimeError( 'Algorithm %s not registered' % (algoName) )
