@@ -36,6 +36,7 @@ class AnacondaInstaller( DefaultClusterSetup ) :
     INSTALL_DIR = '/usr/local/anaconda'
     BIN_DIR = INSTALL_DIR + '/bin'
     CONDA = BIN_DIR + '/conda'
+    SSLCONFIG = INSTALL_DIR + '/ssl/openssl.cnf'
     SYSTEM_ENV_FILE = '/etc/environment'
     PATH_pattern = re.compile( 'PATH=(.*)' )
     PATH_Pattern2 = re.compile( '"(.*)"' )
@@ -71,7 +72,7 @@ class AnacondaInstaller( DefaultClusterSetup ) :
                     newContents += ('PATH=%s:%s\n' % ( self.BIN_DIR, path_value ) )
                 else :
                     newContents += ('PATH="%s:%s"\n' % ( self.BIN_DIR, m.group(1) ) )
-
+		newContents += ('export OPENSSL_CONF=%s\n' % self.SSLCONFIG)
         # Override /etc/environment file, prepend /usr/local/anaconda/bin to PATH
         envFile = node.ssh.remote_file( self.SYSTEM_ENV_FILE, 'w' )
         envFile.write( newContents )
