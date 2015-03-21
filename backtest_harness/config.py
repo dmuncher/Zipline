@@ -2,6 +2,14 @@
 import pandas as pd
 import collections
 
+# Config root logger to print to stdout
+import logging
+sh = logging.StreamHandler()
+sh.setFormatter( logging.Formatter( '[%(asctime)s] %(name)s - %(levelname)s: %(message)s',
+                                    datefmt = '%Y-%m-%d %H:%M:%S' ) )
+rootLogger = logging.getLogger()
+rootLogger.addHandler( sh )
+
 
 class IndexCollection( collections.Mapping ) :
     

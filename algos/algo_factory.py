@@ -11,7 +11,6 @@ def my_import( name ) :
     return m
 
 def create_algo( algoName, *args, **kwargs ):
-    print 'args', args
     package = create_algo.algoName2Package.get( algoName, 'Not found' )
     if package == 'Not found' :
         raise RuntimeError( 'Algorithm %s not registered' % (algoName) )
