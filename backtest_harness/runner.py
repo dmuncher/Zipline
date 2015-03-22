@@ -11,6 +11,9 @@ fh.setFormatter( logging.Formatter( '[%(asctime)s] %(name)s - %(levelname)s: %(m
 LOGGER.addHandler( fh )
 LOGGER.setLevel( logging.INFO )
 
+#from IPython.config import Application
+#LOGGER = Application.instance().log
+
 from collections import namedtuple
 
 import zipline
@@ -35,6 +38,7 @@ class AlgoRunner( object ):
         self._results   = []
         #print 'CWD:', os.getcwd()
         
+
     def run( self, task_id, startDate, endDate, port, *args ) :
         
         try :
@@ -56,10 +60,15 @@ class AlgoRunner( object ):
             # Record results
             LOGGER.info( 'Saving result #%d' % ( len(self._results) ) )
             self._results.append( ( port, args, self._start, self._end, res.portfolio_value ) )
+            
+            fh.flush()
             return BackTestResult( task_id, 'SUCCESS' )
         except Exception as e :
+            fh.flush()
             return BackTestResult( task_id, str(e) )
     
-        
-    def results( self ) :
-        return self._results
+
+    def getResults( self ) :
+        res = self._results
+        self._results = []
+        return res

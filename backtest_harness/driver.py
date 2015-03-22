@@ -6,9 +6,10 @@ from IPython.parallel.util import interactive
 import sys
 from collections import namedtuple
 
-from runner import AlgoRunner
+import backtest_harness.runner
 import config
-
+import utils.parallel
+  
   
 BackTestTask = namedtuple( 'BackTestTask', 'id, portfolio, params' ) 
                
@@ -54,10 +55,11 @@ class BackTestDriver( object ):
     
     
     def run( self ) :
-        # Initialize a single runner since we are running locally
-        runner = AlgoRunner( self._algo, self._allStocks )
-        
         self._results = []
+        
+        # Initialize a single runner since we are running locally
+        runner = backtest_harness.runner.AlgoRunner( self._algo, self._allStocks )
+        
         for start, end in self._periods :
             #nTasks = len( self._portfolios ) * len( self._paramSets )
             #for task_id, port, params in itertools.izip( xrange( nTasks ),
@@ -65,7 +67,7 @@ class BackTestDriver( object ):
             for task in self._generateTasks() :    
                 runner.run( task.id, start, end, task.portfolio, task.params )
                 
-        self._processResults( runner.results() )    
+        self._processResults( runner.getResults() )    
         
         
     def run_parallel( self, clusterClient ) :
@@ -73,7 +75,8 @@ class BackTestDriver( object ):
         clusterClient could be either local or remote
         '''
         
-        # Create direct view  
+        self._results = []
+        
         dview = clusterClient[:]
         dview.clear()
         lview = clusterClient.load_balanced_view() 
@@ -87,29 +90,40 @@ class BackTestDriver( object ):
         #sys.exit(1)
         
         # Import runner module and initialize a runner on each node
-        cmd = ( "from backtest_harness.driver import BackTestTask; "
-                "from backtest_harness.runner import AlgoRunner; "
-                "runner = AlgoRunner('%s', %s)" ) 
+        utils.parallel.import_and_reload( dview, 'backtest_harness.driver', alias = None, components = ['BackTestTask'] )
+        utils.parallel.import_and_reload( dview, 'backtest_harness.runner' )
+        cmd = "runner = backtest_harness.runner.AlgoRunner('%s', %s)"
         dview.execute( cmd % (self._algo, self._allStocks), block = True )
         
-        remote_f = interactive( lambda task : runner.run( task.id, startDate, endDate, task.portfolio, task.params ) )
+        remote_f1 = interactive( lambda task : runner.run( task.id, startDate, endDate, task.portfolio, task.params ) )
+        
+        @dview.remote( block = True )
+        def remote_f2() :
+            return runner.getResults()
         
         for start, end in self._periods :
             dview['startDate'], dview['endDate'] = start, end
             
             # Non-blocking gather
-            amr = dview.map_async( remote_f,
-                                   self._generateTasks() )
-                                   #ordered = False ) # Get results first-come-first, don't care about the order
+            amr = lview.map_async( remote_f1,
+                                  self._generateTasks(),
+                                  ordered = False ) # Get results first-come-first, don't care about the order
             
             # Wait for results and process them as they arrive
-            for r in amr :
-                print r
-                #print 'Task %d done with status %s' % ( r[0], r[1] )
+            #amr.wait_interactive()
+            #clusterClient.spin()
+            #amr.display_outputs( groupby = 'type' )
+            for taskResult in amr :
+                print 'Task %d done with status %s' % ( taskResult.id, taskResult.status )
          
+            # Collect results
+            for runnerResults in remote_f2() :
+                self._processResults( runnerResults ) 
+            
 
     def _processResults( self, results ) :
         self._results.extend( results ) 
+        print 'accumulate results', len( self._results )
         
 
 class PortfolioGenerator( object ) :
@@ -144,9 +158,9 @@ class PortfolioGenerator( object ) :
         
 if __name__ == '__main__' :
     portGen = PortfolioGenerator( config.SP500, 7, 2 )
-    driver = BackTestDriver( 'ANTICOR', portGen, xrange(4,5) )
+    driver = BackTestDriver( 'ANTICOR', portGen, xrange(4,8) )
     
     from IPython.parallel import Client
-    driver.run()
-    #driver.run_parallel( Client() )
+    #driver.run()
+    driver.run_parallel( Client() )
     
