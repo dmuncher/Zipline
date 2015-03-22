@@ -98,11 +98,14 @@ class BackTestDriver( object ):
         remote_f1 = interactive( lambda task : runner.run( task.id, startDate, endDate, task.portfolio, task.params ) )
         
         @dview.remote( block = True )
+        @interactive
         def remote_f2() :
             return runner.getResults()
-        
+                
         for start, end in self._periods :
-            dview['startDate'], dview['endDate'] = start, end
+            dview['startDate'] = start
+            dview['endDate'] = end
+            print 'engine namespace:', dview['startDate'], dview['endDate']
             
             # Non-blocking gather
             amr = lview.map_async( remote_f1,
@@ -115,7 +118,7 @@ class BackTestDriver( object ):
             #amr.display_outputs( groupby = 'type' )
             for taskResult in amr :
                 print 'Task %d done with status %s' % ( taskResult.id, taskResult.status )
-         
+            
             # Collect results
             for runnerResults in remote_f2() :
                 self._processResults( runnerResults ) 
